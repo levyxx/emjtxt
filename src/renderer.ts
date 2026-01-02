@@ -7,8 +7,9 @@ import type { Bitmap, EmojiMode, RenderConfig, BannerResult } from './types.js';
 import { getBackgroundEmoji } from './emoji.js';
 import { getThemeEmojis } from './themes.js';
 
-// Minimal emoji detection for width calculation
+// Minimal emoji / wide-char detection for width calculation
 const EMOJI_REGEX = /[\u{1F300}-\u{1FAFF}\u{1F600}-\u{1F64F}\u{1F680}-\u{1F6FF}\u{2600}-\u{26FF}\u{2700}-\u{27BF}\u{FE0F}]/u;
+const WIDE_CHAR_REGEX = /[\u3000\u3001-\u303F\u3040-\u30FF\u3400-\u4DBF\u4E00-\u9FFF\uF900-\uFAFF]/u;
 
 /**
  * Seeded random number generator for reproducible results
@@ -36,7 +37,13 @@ class SeededRandom {
 function getDisplayWidth(str: string): number {
   let width = 0;
   for (const char of [...str]) {
-    width += EMOJI_REGEX.test(char) ? 2 : 1;
+    if (char === '\u3000') {
+      width += 2;
+    } else if (EMOJI_REGEX.test(char) || WIDE_CHAR_REGEX.test(char)) {
+      width += 2;
+    } else {
+      width += 1;
+    }
   }
   return width;
 }
@@ -54,6 +61,19 @@ function padToWidth(str: string, targetWidth: number): string {
   }
 
   return result;
+}
+
+/**
+ * Fit text to the target width, padding or replacing when too wide to keep the grid stable.
+ */
+function fitToWidth(str: string, targetWidth: number): string {
+  const current = getDisplayWidth(str);
+  if (current === targetWidth) return str;
+  if (current < targetWidth) {
+    return padToWidth(str, targetWidth);
+  }
+  // If wider, fall back to spaces to avoid breaking alignment.
+  return padToWidth('', targetWidth);
 }
 
 /**
@@ -121,8 +141,9 @@ export function renderBitmap(
   // Normalize cell width so backgrounds and foregrounds align visually
   const sampleEmojis = theme === 'github' ? emojis : foregroundEmojis;
   const maxFgWidth = Math.max(...sampleEmojis.map(getDisplayWidth));
-  const cellWidth = Math.max(maxFgWidth, getDisplayWidth(bgEmoji), 1);
-  const paddedBackground = padToWidth(bgEmoji, cellWidth);
+  // Anchor width to foreground so non-emoji backgrounds don't widen cells unexpectedly
+  const cellWidth = Math.max(maxFgWidth, 2);
+  const paddedBackground = fitToWidth(bgEmoji, cellWidth);
 
   const height = bitmap.length;
   const width = height > 0 ? bitmap[0].length : 0;
@@ -140,7 +161,7 @@ export function renderBitmap(
           ? emojis[calculateGitHubIntensity(row, col, height, width, random)]
           : selectEmoji(emojis, row, col, height, width, mode, random);
 
-        const paddedEmoji = padToWidth(rawEmoji, cellWidth);
+        const paddedEmoji = fitToWidth(rawEmoji, cellWidth);
 
         if (theme === 'github') {
           // For GitHub theme, vary intensity based on position
@@ -159,6 +180,7 @@ export function renderBitmap(
 
   return {
     text,
+    backgroundEmoji: bgEmoji,
     bitmap,
     width,
     height,

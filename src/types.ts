@@ -64,6 +64,8 @@ export interface CLIOptions {
 export interface BannerResult {
   /** The rendered text with emojis */
   text: string;
+  /** Background emoji used */
+  backgroundEmoji: string;
   /** The bitmap data */
   bitmap: Bitmap;
   /** Width of the banner in characters */
