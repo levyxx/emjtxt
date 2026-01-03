@@ -4,7 +4,7 @@
   "description": "Convert text to emoji banner art for CLI display",
   "main": "dist/index.js",
   "bin": {
-    "emoji-banner": "dist/index.js"
+    "emjtxt": "dist/index.js"
   },
   "type": "module",
   "scripts": {
@@ -23,8 +23,16 @@
     "text-to-emoji",
     "slack"
   ],
-  "author": "",
+  "author": "Your Name <your.email@example.com>",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/emoji-banner-generator.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/emoji-banner-generator/issues"
+  },
+  "homepage": "https://github.com/yourusername/emoji-banner-generator#readme",
   "files": [
     "dist",
     "README.md"
